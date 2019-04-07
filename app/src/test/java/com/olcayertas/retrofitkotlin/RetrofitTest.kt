@@ -13,6 +13,7 @@ import org.junit.runner.RunWith
 
 import org.robolectric.RobolectricTestRunner
 
+
 /**
  * Instrumented test, which will execute on an Android device.
  *
@@ -21,14 +22,17 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class RetrofitTest {
 
-    private val userName = "your-user-name"
-    private val password = "your-password"
+    private val userName = "olcayertas"
+
+    private fun toJson(src: Any?): String {
+        return GsonBuilder().setPrettyPrinting().create().toJson(src)
+    }
 
     @Test
-    fun loginTest() {
-        WebService().login(userName, password) {
-            assertNotNull("Login service returned null!", it)
-            println("JSON: " + GsonBuilder().setPrettyPrinting().create().toJson(it))
+    fun reposTest() {
+        Api().repos(userName) { list ->
+            println(toJson(list))
+            assertNotNull(list)
         }.get()
     }
 }

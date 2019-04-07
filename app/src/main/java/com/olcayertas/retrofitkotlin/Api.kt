@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit
 
 
 @Suppress("unused")
-class WebService {
+class Api {
 
-    private val baseUrl = "https://your.api.com"
-    private var service: RetrofitWithKotlin
+    private val baseUrl = "https://api.github.com"
+    private var api: GitHubApi
 
     private fun loggingInterceptor(): HttpLoggingInterceptor {
         val loggingInterceptor = HttpLoggingInterceptor()
@@ -39,7 +39,7 @@ class WebService {
 
     init {
         val converter = GsonConverterFactory.create()
-        service = Retrofit.Builder()
+        api = Retrofit.Builder()
             .baseUrl(baseUrl)
             .addConverterFactory(converter)
             .client(okHttpBuilder())
@@ -47,16 +47,18 @@ class WebService {
             .create()
     }
 
-    fun login(userName: String, password: String, calback: (response: LoginResponse?) -> Unit): Future<Unit> {
+    fun repos(userName: String, calback: (list: List<Repo>?) -> Unit): Future<Unit> {
         return doAsync {
             try {
-                service.login(userName, password)
-                    .execute()
-                    .body()?.let {
+                val response = api.repos(userName).execute()
+
+                if (response.isSuccessful) {
+                    response.body()?.let {
                         calback(it)
                     } ?: calback(null)
-            }
-            catch (e: IOException) {
+                }
+
+            } catch (e: IOException) {
                 e.printStackTrace()
                 calback(null)
             }
