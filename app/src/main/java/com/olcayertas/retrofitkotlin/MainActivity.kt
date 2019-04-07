@@ -1,6 +1,7 @@
 package com.olcayertas.retrofitkotlin
 
 import android.os.Bundle
+import android.util.Log
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
 import androidx.core.view.GravityCompat
@@ -30,6 +31,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            Api().repos("olcayertas") { list ->
+                Log.d("MainActivity", "Response:\n" + toJson(list))
+            }
+        }
     }
 
     override fun onBackPressed() {

@@ -6,6 +6,7 @@
 
 package com.olcayertas.retrofitkotlin
 
+import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,24 +17,27 @@ import java.io.IOException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
+fun toJson(src: Any?): String {
+    return GsonBuilder().setPrettyPrinting().create().toJson(src)
+}
 
 @Suppress("unused")
-class Api {
+class Api(private var logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterceptor.Level.BASIC) {
 
     private val baseUrl = "https://api.github.com"
-    private var api: GitHubApi
+    private val api: GitHubApi
 
-    private fun loggingInterceptor(): HttpLoggingInterceptor {
-        val loggingInterceptor = HttpLoggingInterceptor()
-        loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
-        return loggingInterceptor
+    private fun loggingInterceptor(level: HttpLoggingInterceptor.Level): HttpLoggingInterceptor {
+        val interceptor = HttpLoggingInterceptor()
+        interceptor.level = level
+        return interceptor
     }
 
     private fun okHttpBuilder(): OkHttpClient {
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor(loggingInterceptor())
+            .addInterceptor(loggingInterceptor(logLevel))
             .build()
     }
 
@@ -51,16 +55,18 @@ class Api {
         return doAsync {
             try {
                 val response = api.repos(userName).execute()
-
-                if (response.isSuccessful) {
-                    response.body()?.let {
+                when {
+                    response.isSuccessful -> response.body()?.let {
                         calback(it)
                     } ?: calback(null)
+                    response.code() == 404 -> calback(emptyList())
+                    else -> {
+                        println(response.raw().message())
+                        calback(emptyList())
+                    }
                 }
-
             } catch (e: IOException) {
-                e.printStackTrace()
-                calback(null)
+                calback(emptyList())
             }
         }
     }

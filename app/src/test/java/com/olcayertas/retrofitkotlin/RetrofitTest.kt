@@ -31,8 +31,8 @@ class RetrofitTest {
     @Test
     fun reposTest() {
         Api().repos(userName) { list ->
-            println(toJson(list))
             assertNotNull(list)
+            println("Repos: " + toJson(list))
         }.get()
     }
 }
