@@ -14,6 +14,7 @@ import org.jetbrains.anko.doAsync
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.create
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
@@ -21,7 +22,6 @@ fun toJson(src: Any?): String {
     return GsonBuilder().setPrettyPrinting().create().toJson(src)
 }
 
-@Suppress("unused")
 class Api(private var logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterceptor.Level.BASIC) {
 
     private val baseUrl = "https://api.github.com"
@@ -35,8 +35,8 @@ class Api(private var logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterc
 
     private fun okHttpBuilder(): OkHttpClient {
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.MICROSECONDS)
+            .readTimeout(15, TimeUnit.MILLISECONDS)
             .addInterceptor(loggingInterceptor(logLevel))
             .build()
     }
@@ -51,22 +51,34 @@ class Api(private var logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterc
             .create()
     }
 
-    fun repos(userName: String, calback: (list: List<Repo>?) -> Unit): Future<Unit> {
+    fun repos(
+        userName: String,
+        onSuccess: (list: List<Repo>?) -> Unit,
+        onFailure: (message: String?) -> Unit): Future<Unit> {
+        return runAsync(api.repos(userName), onSuccess, onFailure)
+    }
+
+    private fun <T> runAsync(
+        call: retrofit2.Call<T>,
+        onSuccess: (T?) -> Unit,
+        onFailure: (message: String?) -> Unit) : Future<Unit> {
         return doAsync {
             try {
-                val response = api.repos(userName).execute()
+                val response = call.execute()
                 when {
                     response.isSuccessful -> response.body()?.let {
-                        calback(it)
-                    } ?: calback(null)
-                    response.code() == 404 -> calback(emptyList())
+                        onSuccess(it)
+                    }
                     else -> {
-                        println(response.raw().message())
-                        calback(emptyList())
+                        onFailure(response.raw().message())
                     }
                 }
             } catch (e: IOException) {
-                calback(emptyList())
+                if (e is SocketTimeoutException) {
+                    onFailure("Response time out!")
+                } else {
+                    onFailure(e.message)
+                }
             }
         }
     }

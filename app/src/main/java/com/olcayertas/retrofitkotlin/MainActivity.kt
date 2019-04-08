@@ -36,9 +36,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            Api().repos("olcayertas") { list ->
-                Log.d("MainActivity", "Response:\n" + toJson(list))
-            }
+            Api().repos("olcayertas",
+                onSuccess = {
+                    Log.d("MainActivity", "Response:\n" + toJson(it))
+                },
+                onFailure = {
+                    Log.e("MainActivity", "Error: $it")
+                })
         }
     }
 

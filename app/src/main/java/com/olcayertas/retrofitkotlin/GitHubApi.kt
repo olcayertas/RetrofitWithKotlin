@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package com.olcayertas.retrofitkotlin
 
 import retrofit2.Call
